@@ -1,9 +1,9 @@
 class TomographyBuilder(object):
-    event_list = []
-    station_list = []
-    event_builder = None
     
     def __init__(self):
+        self.event_list = []
+        self.station_list = []
+        self.event_builder = None
         return None
     
     def Event(self, event = None):
@@ -28,14 +28,12 @@ class TomographyBuilder(object):
         
         
         
-class EventBuilder(TomographyBuilder):
-    hypocenter_list = []
-    observation_list = []
-    hypocenter_builder = None
-    observation_builder = None
-    tomography_builder = None
-    
+class EventBuilder(TomographyBuilder):    
     def __init__(self, tomography_builder):
+        self.hypocenter_list = []
+        self.observation_list = []
+        self.hypocenter_builder = None
+        self.observation_builder = None
         self.tomography_builder = tomography_builder
         
     def Event(self, event = None):  
@@ -74,10 +72,9 @@ class EventBuilder(TomographyBuilder):
         self.tomography_builder.execute()
     
 class HypocenterBuilder(EventBuilder):
-    hypocenter_list = []
-    event_builder = None
-
     def __init__(self, event_builder):
+        self.hypocenter_list = []
+        self.event_builder = None
         self.event_builder = event_builder
         
     def Location(self, location):
@@ -93,13 +90,11 @@ class HypocenterBuilder(EventBuilder):
     def execute(self):
         self.event_builder.execute()
     
-class ObservationBuilder(EventBuilder):
-    observation_list = []
-    time = None
-    station = None
-    event_builder = None
-    
+class ObservationBuilder(EventBuilder):    
     def __init__(self, event_builder):
+        self.observation_list = []
+        self.time = None
+        self.station = None
         self.event_builder = event_builder
         
     def Observation(self, observation = None):
@@ -114,13 +109,12 @@ class ObservationBuilder(EventBuilder):
         return self
         
     def getValue(self):
-        self.hypocenter_list.append([self.station, self.time])
-        return self.hypocenter_list
+        self.observation_list.append([self.station, self.time])
+        return self.observation_list
         
     def execute(self):
         self.event_builder.execute()
 
     
-test = TomographyBuilder().Event().Hypocenter("hypo")\
-                                    .Observation('obs1').Observation().Station('sta').Time('time') \
-                                    .execute()
+test = TomographyBuilder().Event('event1').Event('event2').execute()
+test2 = TomographyBuilder().execute()
