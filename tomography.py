@@ -1,9 +1,10 @@
 class TomographyBuilder(object):
-    
     def __init__(self):
         self.event_list = []
         self.station_list = []
+        self.velocity_model = None
         self.event_builder = None
+        self.velocity_model_builder = None
         return None
     
     def Event(self, event = None):
@@ -21,12 +22,27 @@ class TomographyBuilder(object):
         self.station_list.append(station)
         return self
     
+    def VelocityModel(self, velocity_model = None):
+        if (velocity_model != None):
+            self.velocity_model = velocity_model
+            return self
+        
+        self.velocity_model_builder = VelocityModelBuilder(self)
+        return self.velocity_model_builder
+    
     def execute(self):
         if (self.event_builder != None):
             self.event_list.append(self.event_builder.getValue())
-        print(self.event_list)
         
-        
+        if (self.velocity_model_builder != None):
+            self.velocity_model = self.velocity_model_builder.getValue()
+            
+        result = []
+        result.append(self.event_list)
+        result.append(self.station_list)
+        result.append(self.velocity_model)
+        print(result)
+            
         
 class EventBuilder(TomographyBuilder):    
     def __init__(self, tomography_builder):
@@ -70,7 +86,35 @@ class EventBuilder(TomographyBuilder):
             self.observation_list.append(self.observation_builder.getValue())
         
         self.tomography_builder.execute()
+        
+class VelocityModelBuilder(TomographyBuilder):
+    def __init__(self, tomography_builder):
+        self.reference_model = None
+        self.coordinate = None
+        self.coordinateBuilder = None
+        self.tomography_builder = tomography_builder
+        
+    def ReferenceModel(self, reference_model):
+        self.reference_model = reference_model
+        return self
+
+    def Coordinate(self, coordinate = None):
+        if (coordinate != None):
+            self.coordinate = coordinate
+            return self
+        
+        self.coordinateBuilder = CoordinateBuilder(self)
+        return  self.coordinateBuilder
     
+    def getValue(self):
+        if (self.coordinateBuilder != None):
+            self.coordinate = self.coordinateBuilder.getValue()
+        
+        return [self.coordinate, self.reference_model]
+    
+    def execute(self):        
+        self.tomography_builder.execute()
+
 class HypocenterBuilder(EventBuilder):
     def __init__(self, event_builder):
         self.hypocenter_list = []
@@ -115,6 +159,38 @@ class ObservationBuilder(EventBuilder):
     def execute(self):
         self.event_builder.execute()
 
+def CoordinateBuilder(VelocityModelBuilder):
+    def __init__(self, velocity_model_builder):
+        self.velocity_model_builder = velocity_model_builder
+        self.cooridinate = []
+        self.mesh = None
+        self.origin = None
+        self.space = None
+
+    def Mesh(self, mesh):
+        self.mesh = mesh
+        return self
     
-test = TomographyBuilder().Event('event1').Event('event2').execute()
-test2 = TomographyBuilder().execute()
+    def Origin(self, origin):
+        self.origin = origin
+        return self
+    
+    def Space(self, space):
+        self.space = space
+        return self
+
+    def getValue(self):
+        self.cooridinate.append([self.mesh, self.origin, self.space])
+        return self.cooridinate
+    
+    def execute(self):
+        self.velocity_model_builder.execute()
+
+    
+TomographyBuilder() \
+    .Event('event') \
+    .Station('station') \
+    .VelocityModel() \
+        .Coordinate('coordinate') \
+        .ReferenceModel('reference_model') \
+    .execute()
