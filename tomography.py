@@ -6,7 +6,7 @@ class TomographyBuilder(object):
         self.event_builder = None
         self.velocity_model_builder = None
         return None
-    
+
     def Event(self, event = None):
         if(event != None):
             self.event_list.append(event)
@@ -44,7 +44,7 @@ class TomographyBuilder(object):
         print(result)
             
         
-class EventBuilder(TomographyBuilder):    
+class EventBuilder():    
     def __init__(self, tomography_builder):
         self.hypocenter_list = []
         self.observation_list = []
@@ -52,9 +52,14 @@ class EventBuilder(TomographyBuilder):
         self.observation_builder = None
         self.tomography_builder = tomography_builder
         
-    def Event(self, event = None):  
-        return self.tomography_builder.Event()
-        
+    def __getattr__(self, name):
+        def _method_missing(*args, **kwargs):
+            if(name == 'Event'):
+                return self.tomography_builder.Event(args[0])
+            elif(name == 'Station'):
+                return self.tomography_builder.Station(args[0])
+        return _method_missing
+            
     def Hypocenter(self, hypocenter):
         if(hypocenter != None):
             self.hypocenter_list.append(hypocenter)
@@ -87,12 +92,19 @@ class EventBuilder(TomographyBuilder):
         
         self.tomography_builder.execute()
         
-class VelocityModelBuilder(TomographyBuilder):
+class VelocityModelBuilder():
     def __init__(self, tomography_builder):
         self.reference_model = None
         self.coordinate = None
         self.coordinateBuilder = None
         self.tomography_builder = tomography_builder
+        
+    def __getattr__(self, name):
+        def _method_missing(*args, **kwargs):
+            if(name == 'execute'):
+                return self.tomography_builder.execute()
+
+        return _method_missing
         
     def ReferenceModel(self, reference_model):
         self.reference_model = reference_model
@@ -111,15 +123,18 @@ class VelocityModelBuilder(TomographyBuilder):
             self.coordinate = self.coordinateBuilder.getValue()
         
         return [self.coordinate, self.reference_model]
-    
-    def execute(self):        
-        self.tomography_builder.execute()
 
-class HypocenterBuilder(EventBuilder):
+class HypocenterBuilder():
     def __init__(self, event_builder):
         self.hypocenter_list = []
         self.event_builder = None
         self.event_builder = event_builder
+        
+    def __getattr__(self, name):
+        def _method_missing(*args, **kwargs):
+            if(name == 'Station'):
+                return self.event_builder.Station(args[0])
+        return _method_missing
         
     def Location(self, location):
         self.location = location
@@ -130,16 +145,19 @@ class HypocenterBuilder(EventBuilder):
         
     def getValue(self):
         self.hypocenter_list.append([self.time, self.location])
-        
-    def execute(self):
-        self.event_builder.execute()
     
-class ObservationBuilder(EventBuilder):    
+class ObservationBuilder():    
     def __init__(self, event_builder):
         self.observation_list = []
         self.time = None
         self.station = None
         self.event_builder = event_builder
+        
+    def __getattr__(self, name):
+        def _method_missing(*args, **kwargs):
+            if(name == 'Observation'):
+                return self.event_builder.Observation(args[0])
+        return _method_missing
         
     def Observation(self, observation = None):
         return self.event_builder.Observation()
@@ -155,17 +173,21 @@ class ObservationBuilder(EventBuilder):
     def getValue(self):
         self.observation_list.append([self.station, self.time])
         return self.observation_list
-        
-    def execute(self):
-        self.event_builder.execute()
 
-def CoordinateBuilder(VelocityModelBuilder):
+
+def CoordinateBuilder():
     def __init__(self, velocity_model_builder):
         self.velocity_model_builder = velocity_model_builder
         self.cooridinate = []
         self.mesh = None
         self.origin = None
         self.space = None
+
+    def __getattr__(self, name):
+        def _method_missing(*args, **kwargs):
+            if(name == 'ReferenceModel'):
+                return self.velocity_model_builder.ReferenceModel(args[0])
+        return _method_missing    
 
     def Mesh(self, mesh):
         self.mesh = mesh
@@ -182,15 +204,16 @@ def CoordinateBuilder(VelocityModelBuilder):
     def getValue(self):
         self.cooridinate.append([self.mesh, self.origin, self.space])
         return self.cooridinate
-    
-    def execute(self):
-        self.velocity_model_builder.execute()
+
 
     
 TomographyBuilder() \
     .Event('event') \
+    .Event() \
+        .Hypocenter('hypo') \
+        .Observation('obs') \
     .Station('station') \
     .VelocityModel() \
         .Coordinate('coordinate') \
         .ReferenceModel('reference_model') \
-    .execute()
+    .execute() 
