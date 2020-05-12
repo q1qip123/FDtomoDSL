@@ -2,10 +2,8 @@ class TomographyBuilder(object):
     def __init__(self):
         self.event_list = []
         self.station_list = []
-        self.velocity_model = None
         self.event_builder = None
         self.velocity_model_builder = None
-        return None
 
     def Event(self, event = None):
         if(event != None):
@@ -46,9 +44,8 @@ class TomographyBuilder(object):
         
 class EventBuilder():    
     def __init__(self, tomography_builder):
-        self.hypocenter_list = []
         self.observation_list = []
-        self.hypocenter_builder = None
+        self.earthquake_builder = None
         self.observation_builder = None
         self.tomography_builder = tomography_builder
         
@@ -60,13 +57,13 @@ class EventBuilder():
                 return self.tomography_builder.Station(args[0])
         return _method_missing
             
-    def Hypocenter(self, hypocenter):
-        if(hypocenter != None):
-            self.hypocenter_list.append(hypocenter)
+    def Earthquake(self, earthquake):
+        if(earthquake != None):
+            self.earthquake_list.append(earthquake)
             return self
         
-        self.hypocenter_builder = HypocenterBuilder(self)
-        return self.hypocenter_builder
+        self.earthquake_builder = EarthquakeBuilder(self)
+        return self.earthquake_builder
     
     def Observation(self, observation = None):
         if(observation != None):
@@ -94,7 +91,8 @@ class EventBuilder():
         
 class VelocityModelBuilder():
     def __init__(self, tomography_builder):
-        self.reference_model = None
+        self.vp_model = None
+        self.vs_model = None
         self.coordinate = None
         self.coordinateBuilder = None
         self.tomography_builder = tomography_builder
@@ -106,8 +104,9 @@ class VelocityModelBuilder():
 
         return _method_missing
         
-    def ReferenceModel(self, reference_model):
-        self.reference_model = reference_model
+    def ReferenceModel(self, vp_model, vs_model):
+        self.vp_model = vp_model
+        self.vs_model = vs_model
         return self
 
     def Coordinate(self, coordinate = None):
@@ -124,11 +123,11 @@ class VelocityModelBuilder():
         
         return [self.coordinate, self.reference_model]
 
-class HypocenterBuilder():
+class EarthquakeBuilder():
     def __init__(self, event_builder):
-        self.hypocenter_list = []
-        self.event_builder = None
         self.event_builder = event_builder
+        self.location = None
+        self.time = None
         
     def __getattr__(self, name):
         def _method_missing(*args, **kwargs):
@@ -142,6 +141,9 @@ class HypocenterBuilder():
     
     def Time(self, time):
         self.time = time
+
+    def Earthquake(self, time):
+        return NotImplemented
         
     def getValue(self):
         self.hypocenter_list.append([self.time, self.location])
@@ -151,6 +153,7 @@ class ObservationBuilder():
         self.observation_list = []
         self.time = None
         self.station = None
+        self.setting = None
         self.event_builder = event_builder
         
     def __getattr__(self, name):
@@ -170,6 +173,10 @@ class ObservationBuilder():
         self.time = time
         return self
         
+    def Setting(self, setting):
+        self.setting = setting
+        return self
+
     def getValue(self):
         self.observation_list.append([self.station, self.time])
         return self.observation_list
@@ -179,7 +186,8 @@ def CoordinateBuilder():
     def __init__(self, velocity_model_builder):
         self.velocity_model_builder = velocity_model_builder
         self.cooridinate = []
-        self.mesh = None
+        self.coarse_mesh = None
+        self.fine_mesh = None
         self.origin = None
         self.space = None
 
@@ -189,8 +197,9 @@ def CoordinateBuilder():
                 return self.velocity_model_builder.ReferenceModel(args[0])
         return _method_missing    
 
-    def Mesh(self, mesh):
-        self.mesh = mesh
+    def Mesh(self, coarse_mesh, fine_mesh):
+        self.coarse_mesh = coarse_mesh
+        self.fine_mesh = fine_mesh
         return self
     
     def Origin(self, origin):
@@ -207,13 +216,3 @@ def CoordinateBuilder():
 
 
     
-TomographyBuilder() \
-    .Event('event') \
-    .Event() \
-        .Hypocenter('hypo') \
-        .Observation('obs') \
-    .Station('station') \
-    .VelocityModel() \
-        .Coordinate('coordinate') \
-        .ReferenceModel('reference_model') \
-    .execute() 
